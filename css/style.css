@@ -1,0 +1,20 @@
+html,
+body {
+  margin: 0;
+  padding: 0;
+  height: 100%;
+  background: #0e0e12;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+}
+
+#game {
+  image-rendering: pixelated;
+  image-rendering: crisp-edges;
+  width: min(100vw, calc(100vh * 320 / 224));
+  max-height: 100vh;
+  background: #000;
+  box-shadow: 0 0 40px rgba(0, 0, 0, 0.8);
+}
