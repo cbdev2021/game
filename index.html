@@ -8,6 +8,18 @@
 </head>
 <body>
   <canvas id="game"></canvas>
+  <div id="touch-ui">
+    <div class="dpad">
+      <button class="touch-btn" data-action="left">&#9664;</button>
+      <button class="touch-btn" data-action="right">&#9654;</button>
+      <button class="touch-btn" data-action="up">&#9650;</button>
+      <button class="touch-btn" data-action="down">&#9660;</button>
+    </div>
+    <div class="actions">
+      <button class="touch-btn big red" data-action="attack">GOLPE</button>
+      <button class="touch-btn big green" data-action="jump">SALTO</button>
+    </div>
+  </div>
   <script src="js/config.js"></script>
   <script src="js/input.js"></script>
   <script src="js/entities/classes.js"></script>

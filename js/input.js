@@ -44,7 +44,36 @@ class Input {
     return this.pressedActions.has(action);
   }
 
+  virtual(action, down) {
+    if (down && !this.down.has(action)) {
+      this.down.add(action);
+      this.pressedActions.add(action);
+    }
+    if (!down) this.down.delete(action);
+  }
+
   endFrame() {
     this.pressedActions.clear();
+  }
+}
+
+function bindTouchControls(input) {
+  const ui = document.getElementById('touch-ui');
+  if (!ui) return;
+  const buttons = ui.querySelectorAll('.touch-btn');
+  for (const btn of buttons) {
+    const action = btn.dataset.action;
+    if (!action) continue;
+    btn.addEventListener('pointerdown', (e) => {
+      e.preventDefault();
+      try { btn.setPointerCapture(e.pointerId); } catch (err) {}
+      input.virtual(action, true);
+    });
+    btn.addEventListener('pointerup', (e) => {
+      input.virtual(action, false);
+    });
+    btn.addEventListener('pointercancel', () => {
+      input.virtual(action, false);
+    });
   }
 }

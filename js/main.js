@@ -4,6 +4,7 @@ canvas.width = CONFIG.VIEW_W;
 canvas.height = CONFIG.VIEW_H;
 
 const input = new Input();
+bindTouchControls(input);
 
 const game = {
   state: 'menu',
