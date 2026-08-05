@@ -99,11 +99,11 @@ class Player {
     this.animState = this.getAnimState();
     if (this.animState !== this.prevAnim) this.animTime = 0;
     this.animTime += dt;
-    const counts = { idle: 2, run: 3, jump: 2, attack: 3, land: 1, crouch: 1, crouchWalk: 2 };
+    const counts = { idle: 2, run: 4, jump: 3, attack: 3, land: 1, crouch: 1, crouchWalk: 2 };
     const rates = { idle: 6, run: 12, jump: 8, attack: 14, land: 10, crouch: 6, crouchWalk: 10 };
     this.frameIndex = Math.floor(this.animTime * rates[this.animState]) % counts[this.animState];
     if (this.animState === 'jump') {
-      this.frameIndex = this.vy < 0 ? 0 : 1;
+      this.frameIndex = this.vy < -80 ? 0 : this.vy > 80 ? 2 : 1;
     }
     if (this.animState === 'attack') {
       const phase = this.getAttackPhase();

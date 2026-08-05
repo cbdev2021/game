@@ -1,11 +1,3 @@
-const PALETTE = {
-  '.': null,
-  '#': '#a06a35',
-  'T': '#5aa02c',
-  '=': '#8f6a3a',
-  'G': '#3ecfe0',
-};
-
 const SKY_TOP = '#1b2436';
 const SKY_BOTTOM = '#3a4a68';
 
@@ -13,6 +5,11 @@ const STARS = [
   [20, 18], [58, 30], [97, 12], [140, 26], [178, 16], [220, 34], [260, 22], [300, 12],
   [40, 40], [120, 42], [200, 44], [280, 42],
 ];
+
+function hash2(a, b) {
+  const n = a * 374761393 + b * 668265263;
+  return (Math.abs(n) % 997) / 997;
+}
 
 const FLASH_CACHE = new Map();
 
@@ -48,7 +45,7 @@ function render(ctx, game) {
   ctx.save();
   ctx.translate(sh.x, sh.y);
   drawSky(ctx, game.camera);
-  drawLevel(ctx, game.level, game.camera);
+  drawLevel(ctx, game.level, game.camera, game.time || 0);
   drawEnemies(ctx, game.enemies, game.camera);
   drawPlayer(ctx, game.player, game.camera);
   drawParticles(ctx, game.camera);
@@ -63,61 +60,141 @@ function drawSky(ctx, camera) {
   g.addColorStop(1, SKY_BOTTOM);
   ctx.fillStyle = g;
   ctx.fillRect(0, 0, CONFIG.VIEW_W, CONFIG.VIEW_H);
-  ctx.fillStyle = 'rgba(255,255,255,0.35)';
   const camX = camera ? camera.x : 0;
+  ctx.fillStyle = 'rgba(255,255,255,0.5)';
   for (const [sx, sy] of STARS) {
-    const x = ((sx - camX * 0.3) % (CONFIG.VIEW_W + 20) + CONFIG.VIEW_W + 20) % (CONFIG.VIEW_W + 20) - 10;
+    const x = ((sx - camX * 0.2) % (CONFIG.VIEW_W + 20) + CONFIG.VIEW_W + 20) % (CONFIG.VIEW_W + 20) - 10;
     ctx.fillRect(x, sy, 2, 2);
+  }
+  drawHills(ctx, camX * 0.12, 148, 26, '#222c44');
+  drawHills(ctx, camX * 0.3, 166, 20, '#1a2336');
+  ctx.fillStyle = 'rgba(160,180,210,0.35)';
+  for (let i = 0; i < 6; i++) {
+    const bx = ((i * 187 + 40 - camX * 0.5) % (CONFIG.VIEW_W + 220) + CONFIG.VIEW_W + 220) % (CONFIG.VIEW_W + 220) - 110;
+    const by = 28 + ((i * 53) % 96);
+    drawCloud(ctx, bx, by);
   }
 }
 
-function drawLevel(ctx, level, camera) {
+function drawHills(ctx, offset, baseY, amp, color) {
+  ctx.fillStyle = color;
+  const period = 96;
+  const start = Math.floor(offset / period);
+  for (let k = start - 1; k < start + Math.ceil(CONFIG.VIEW_W / period) + 2; k++) {
+    const x0 = k * period - offset;
+    const hgt = amp * (0.3 + 0.7 * Math.abs(Math.sin(k * 1.7 + 2)));
+    ctx.fillRect(x0, baseY - hgt, period, hgt + 40);
+  }
+}
+
+function drawCloud(ctx, bx, by) {
+  ctx.fillRect(bx + 4, by + 4, 20, 4);
+  ctx.fillRect(bx, by + 8, 28, 4);
+  ctx.fillRect(bx + 10, by, 12, 4);
+  ctx.fillRect(bx + 7, by + 4, 18, 4);
+}
+
+function drawLevel(ctx, level, camera, time) {
   const x0 = Math.floor(camera.x / CONFIG.TILE);
   const x1 = Math.floor((camera.x + CONFIG.VIEW_W) / CONFIG.TILE);
   for (let ty = 0; ty < level.height; ty++) {
     for (let tx = x0; tx <= x1; tx++) {
       const tile = level.tileAt(tx, ty);
-      const color = PALETTE[tile];
-      if (!color) continue;
+      if (!tile || tile === '.') continue;
       const px = tx * CONFIG.TILE - camera.x;
       const py = ty * CONFIG.TILE - camera.y;
-      ctx.fillStyle = color;
-      ctx.fillRect(px, py, CONFIG.TILE, CONFIG.TILE);
-      if (tile === '#') {
-        ctx.fillStyle = '#7a4f28';
-        ctx.fillRect(px, py, CONFIG.TILE, 3);
-        ctx.fillStyle = '#8f5f30';
-        ctx.fillRect(px, py + 7, 3, 2);
-        ctx.fillRect(px + 8, py + 11, 3, 2);
-        if ((tx * 7 + ty * 13) % 4 === 0) {
-          ctx.fillStyle = '#8f5f30';
-          ctx.fillRect(px + 5, py + 4, 2, 2);
-        }
-      } else if (tile === 'T') {
-        ctx.fillStyle = '#3c7a1e';
-        ctx.fillRect(px, py + CONFIG.TILE - 4, CONFIG.TILE, 4);
-        ctx.fillStyle = '#6ab83a';
-        if (tx % 2 === 0) ctx.fillRect(px + 2, py + 2, 2, 2);
-        if (tx % 3 === 0) ctx.fillRect(px + 10, py + 4, 2, 2);
-      } else if (tile === '=') {
-        ctx.fillStyle = '#b08a4a';
-        ctx.fillRect(px, py, CONFIG.TILE, 2);
-        ctx.fillStyle = '#5f4526';
-        ctx.fillRect(px, py + 8, CONFIG.TILE, 1);
-        ctx.fillRect(px, py, 2, CONFIG.TILE);
-        ctx.fillRect(px + CONFIG.TILE - 2, py, 2, CONFIG.TILE);
-      } else if (tile === 'G') {
-        ctx.fillStyle = 'rgba(62,207,224,0.35)';
-        ctx.fillRect(px - 2, py - 2, CONFIG.TILE + 4, CONFIG.TILE * 2 + 4);
-        ctx.fillStyle = color;
-        ctx.fillRect(px, py, CONFIG.TILE, CONFIG.TILE * 2);
-        ctx.fillStyle = '#0a1a2a';
-        ctx.fillRect(px + 2, py + 2, CONFIG.TILE - 4, CONFIG.TILE * 2 - 4);
-        ctx.fillStyle = '#eaffff';
-        ctx.fillRect(px + 6, py + 5, 4, 4);
-        ctx.fillRect(px + 6, py + 18, 4, 4);
-      }
+      if (tile === '#') drawDirt(ctx, px, py, tx, ty);
+      else if (tile === 'T') drawGrass(ctx, px, py, tx, ty);
+      else if (tile === '=') drawPlatform(ctx, px, py);
+      else if (tile === 'G') drawPortal(ctx, px, py, tx, ty, time);
     }
+  }
+}
+
+function drawGrass(ctx, px, py, tx, ty) {
+  ctx.fillStyle = '#4a9426';
+  ctx.fillRect(px, py, CONFIG.TILE, CONFIG.TILE);
+  const bladeCols = ['#6cc23c', '#5ab22e', '#3f8a1e'];
+  for (let k = 0; k < 6; k++) {
+    const bx = px + Math.floor(hash2(tx * 3 + k, ty * 7 + k) * 14);
+    const bh = 2 + Math.floor(hash2(tx + k, ty + 11 + k) * 3);
+    ctx.fillStyle = bladeCols[k % 3];
+    ctx.fillRect(bx, py + 16 - bh - 1, 1, bh + 1);
+    ctx.fillStyle = '#8ad85a';
+    ctx.fillRect(bx, py + 16 - bh - 1, 1, 1);
+  }
+  ctx.fillStyle = '#3a7a1e';
+  for (let i = 0; i < 4; i++) {
+    const bx = px + Math.floor(i * 4 + hash2(tx, ty) * 2);
+    ctx.fillRect(bx, py + 13, 3, 3);
+  }
+  const fr = hash2(tx * 5 + 1, ty * 3 + 2);
+  if (fr < 0.2) {
+    const fx = px + 2 + Math.floor(fr * 11);
+    const fy = py + 1 + Math.floor(hash2(tx, ty + 9) * 8);
+    ctx.fillStyle = fr < 0.1 ? '#ffffff' : '#ff9ac8';
+    ctx.fillRect(fx, fy, 3, 3);
+    ctx.fillStyle = '#ffe066';
+    ctx.fillRect(fx + 1, fy + 1, 1, 1);
+  }
+}
+
+function drawDirt(ctx, px, py, tx, ty) {
+  ctx.fillStyle = '#8a5a2e';
+  ctx.fillRect(px, py, CONFIG.TILE, CONFIG.TILE);
+  ctx.fillStyle = '#5c3a1c';
+  ctx.fillRect(px, py, CONFIG.TILE, 3);
+  for (let k = 0; k < 2; k++) {
+    const sy = py + 5 + Math.floor(hash2(tx * 7 + k, ty * 13 + k) * 8);
+    const sx = px + Math.floor(hash2(tx + k * 3, ty + k * 5) * 9);
+    ctx.fillRect(sx, sy, 4 + Math.floor(hash2(tx + 1, ty + 2 + k) * 4), 1);
+  }
+  for (let k = 0; k < 3; k++) {
+    const px2 = px + Math.floor(hash2(tx * 11 + k, ty * 17 + k) * 12);
+    const py2 = py + 4 + Math.floor(hash2(tx * 3 + k, ty * 5 + k) * 9);
+    ctx.fillStyle = k === 0 ? '#a06a35' : '#6a4520';
+    ctx.fillRect(px2, py2, 2, hash2(tx + k, ty + k + 1) > 0.5 ? 2 : 1);
+  }
+  ctx.fillStyle = '#b07a44';
+  ctx.fillRect(px + Math.floor(hash2(tx, ty * 3 + 7) * 14), py + Math.floor(hash2(tx * 2, ty) * 13), 1, 1);
+}
+
+function drawPlatform(ctx, px, py) {
+  ctx.fillStyle = '#9a7238';
+  ctx.fillRect(px, py, CONFIG.TILE, CONFIG.TILE);
+  ctx.fillStyle = '#c8a05a';
+  ctx.fillRect(px, py, CONFIG.TILE, 1);
+  ctx.fillStyle = '#3f2c12';
+  ctx.fillRect(px, py + 14, CONFIG.TILE, 2);
+  ctx.fillStyle = '#6f5226';
+  ctx.fillRect(px, py + 4, CONFIG.TILE, 1);
+  ctx.fillRect(px, py + 8, CONFIG.TILE, 1);
+  ctx.fillRect(px, py + 12, CONFIG.TILE, 1);
+  for (const sep of [5, 12]) {
+    ctx.fillStyle = '#4a3416';
+    ctx.fillRect(px + sep, py, 1, CONFIG.TILE);
+    ctx.fillStyle = '#2e2010';
+    ctx.fillRect(px + sep - 1, py + 1, 3, 1);
+    ctx.fillRect(px + sep - 1, py + 13, 3, 1);
+  }
+}
+
+function drawPortal(ctx, px, py, tx, ty, time) {
+  const pulse = 0.6 + 0.4 * Math.sin(time * 4 + tx);
+  ctx.fillStyle = 'rgba(62,207,224,' + (0.25 * pulse).toFixed(3) + ')';
+  ctx.fillRect(px - 3, py - 3, CONFIG.TILE + 6, CONFIG.TILE * 2 + 6);
+  ctx.fillStyle = '#0a1a2a';
+  ctx.fillRect(px, py, CONFIG.TILE, CONFIG.TILE * 2);
+  ctx.fillStyle = 'rgba(62,207,224,' + (0.7 * pulse).toFixed(3) + ')';
+  for (let y = 0; y < CONFIG.TILE * 2; y += 4) {
+    const sx = px + 3 + Math.floor(hash2(tx * 3, ty * 3 + y / 4) * 9);
+    ctx.fillRect(sx, py + y + 1, 4, 2);
+  }
+  ctx.fillStyle = '#eaffff';
+  for (let k = 0; k < 5; k++) {
+    const sy = (k * 41 + Math.floor(time * 8)) % (CONFIG.TILE * 2);
+    const sx = 2 + Math.floor((hash2(tx + k, ty + k) + Math.sin(time * 3 + k) * 0.25) * 10);
+    ctx.fillRect(px + sx, py + sy, 1, 1);
   }
 }
 
@@ -153,17 +230,18 @@ function drawPlayer(ctx, player, camera) {
   const h = player.h();
   const x = Math.round(player.x - camera.x);
   const y = Math.round(player.y - camera.y);
-  const sp = CLASS_SPRITES[player.char.id];
-  const grid = POSES[player.animState][player.frameIndex];
-  const off = spriteOffsets(grid, p.W, h);
+  const cls = player.char.id;
+  const body = SPRITES[cls][player.animState][player.frameIndex];
+  const off = spriteOffsets(body, p.W, h);
+  const crouch = player.animState === 'crouch' || player.animState === 'crouchWalk';
   ctx.globalAlpha = player.invulnTimer > 0 ? 0.4 : 1;
-  drawSprite(ctx, grid, sp.palette, x + off.x, y + off.y, player.facing);
-  if (sp.accent) drawSprite(ctx, sp.accent, sp.palette, x + off.x, y + off.y, player.facing);
-  if (sp.head) drawSprite(ctx, sp.head, sp.palette, x + off.x, y + off.y, player.facing);
+  drawSprite(ctx, body, CLASS_PALETTES[cls], x + off.x, y + off.y, player.facing);
+  drawSprite(ctx, crouch ? ACCENTS[cls].crouch : ACCENTS[cls].stand, CLASS_PALETTES[cls], x + off.x, y + off.y, player.facing);
+  drawSprite(ctx, HEADS[cls], CLASS_PALETTES[cls], x + off.x, y + off.y, player.facing);
   ctx.globalAlpha = 1;
   if (player.animState === 'attack') {
-    const wp = WEAPONS[player.char.id];
-    if (wp) drawWeapon(ctx, wp, sp.palette, x, y, player.facing, off);
+    const wp = WEAPONS[cls];
+    if (wp) drawWeapon(ctx, wp, CLASS_PALETTES[cls], x, y, player.facing, off);
   }
   if (player.isStriking()) drawSlashArc(ctx, player, x, y);
 }
@@ -273,12 +351,12 @@ function drawMenu(ctx, game) {
     ctx.fillRect(x - 1, cardY - 1, cardW + 2, cardH + 2);
     ctx.fillStyle = selected ? '#1a1a2a' : '#11151f';
     ctx.fillRect(x, cardY, cardW, cardH);
-    const sp = CLASS_SPRITES[ch.id];
-    const grid = POSES.idle[0];
+    const sp = CLASS_PALETTES[ch.id];
+    const grid = SPRITES[ch.id].idle[0];
     const sx = x + Math.round((cardW - grid[0].length * 2) / 2);
-    drawSpriteScaled(ctx, grid, sp.palette, sx, cardY + 4, 1, 2);
-    if (sp.accent) drawSpriteScaled(ctx, sp.accent, sp.palette, sx, cardY + 4, 1, 2);
-    if (sp.head) drawSpriteScaled(ctx, sp.head, sp.palette, sx, cardY + 4, 1, 2);
+    drawSpriteScaled(ctx, grid, sp, sx, cardY + 4, 1, 2);
+    drawSpriteScaled(ctx, ACCENTS[ch.id].stand, sp, sx, cardY + 4, 1, 2);
+    drawSpriteScaled(ctx, HEADS[ch.id], sp, sx, cardY + 4, 1, 2);
     ctx.fillStyle = '#fff';
     ctx.fillText(ch.name, x + cardW / 2, cardY + 62);
     ctx.fillText('HP ' + ch.hp, x + cardW / 2, cardY + 74);

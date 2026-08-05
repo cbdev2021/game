@@ -8,6 +8,7 @@ const input = new Input();
 const game = {
   state: 'menu',
   selected: 0,
+  time: 0,
   player: null,
   level: null,
   camera: null,
@@ -89,6 +90,7 @@ function updateParticles(dt) {
 }
 
 function update(dt) {
+  game.time += dt;
   if (game.state === 'menu') {
     if (input.pressed('left')) game.selected = (game.selected + CHARACTERS.length - 1) % CHARACTERS.length;
     if (input.pressed('right')) game.selected = (game.selected + 1) % CHARACTERS.length;
