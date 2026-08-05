@@ -102,8 +102,6 @@ function update(dt) {
 
     if (!prevGround && p.onGround && p.y > prevY) {
       spawnDust(p.x + CONFIG.PLAYER.W / 2, p.y + p.h(), 4);
-      game.shakeTimer = CONFIG.JUICE.SHAKE_LAND;
-      game.shakeMag = CONFIG.JUICE.SHAKE_LAND_MAG;
     }
 
     if (p.onGround && Math.abs(p.vx) > 100 && !p.crouch) {
