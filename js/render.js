@@ -235,6 +235,7 @@ function drawPlayer(ctx, player, camera) {
   const off = spriteOffsets(body, p.W, h);
   const crouch = player.animState === 'crouch' || player.animState === 'crouchWalk';
   ctx.globalAlpha = player.invulnTimer > 0 ? 0.4 : 1;
+  drawSprite(ctx, crouch ? BACK_LAYERS[cls].crouch : BACK_LAYERS[cls].stand, CLASS_PALETTES[cls], x + off.x, y + off.y, player.facing);
   drawSprite(ctx, body, CLASS_PALETTES[cls], x + off.x, y + off.y, player.facing);
   drawSprite(ctx, crouch ? ACCENTS[cls].crouch : ACCENTS[cls].stand, CLASS_PALETTES[cls], x + off.x, y + off.y, player.facing);
   drawSprite(ctx, HEADS[cls], CLASS_PALETTES[cls], x + off.x, y + off.y, player.facing);
@@ -279,18 +280,19 @@ function drawSlashArc(ctx, player, x, y) {
 
 function drawEnemies(ctx, enemies, camera) {
   const e = CONFIG.ENEMY;
+  const eoff = spriteOffsets(ENEMY_SPRITES[0], e.W, e.H);
   for (const enemy of enemies) {
     const x = Math.round(enemy.x - camera.x);
     const y = Math.round(enemy.y - camera.y);
     if (enemy.dead) {
       const a = clamp(enemy.deathTimer / 0.6, 0, 1);
       ctx.globalAlpha = a;
-      drawSprite(ctx, ENEMY_SPRITES[1], ENEMY_PALETTE, x - 1, y, enemy.dir);
+      drawSprite(ctx, ENEMY_SPRITES[1], ENEMY_PALETTE, x + eoff.x, y + eoff.y, enemy.dir);
       ctx.globalAlpha = 1;
       continue;
     }
     const frame = Math.floor(enemy.animTime * 8) % ENEMY_SPRITES.length;
-    drawSprite(ctx, ENEMY_SPRITES[frame], ENEMY_PALETTE, x - 1, y, enemy.dir, enemy.hitTimer > 0);
+    drawSprite(ctx, ENEMY_SPRITES[frame], ENEMY_PALETTE, x + eoff.x, y + eoff.y, enemy.dir, enemy.hitTimer > 0);
     drawBar(ctx, x, y - 4, e.W, 3, enemy.hp / enemy.maxHp, '#40d040', '#2a5a2a');
   }
 }
@@ -340,8 +342,8 @@ function drawMenu(ctx, game) {
   const cardW = 60;
   const gap = 8;
   const startX = Math.floor((CONFIG.VIEW_W - (4 * cardW + 3 * gap)) / 2);
-  const cardY = 66;
-  const cardH = 104;
+  const cardY = 56;
+  const cardH = 130;
 
   for (let i = 0; i < CHARACTERS.length; i++) {
     const ch = CHARACTERS[i];
@@ -354,13 +356,14 @@ function drawMenu(ctx, game) {
     const sp = CLASS_PALETTES[ch.id];
     const grid = SPRITES[ch.id].idle[0];
     const sx = x + Math.round((cardW - grid[0].length * 2) / 2);
-    drawSpriteScaled(ctx, grid, sp, sx, cardY + 4, 1, 2);
-    drawSpriteScaled(ctx, ACCENTS[ch.id].stand, sp, sx, cardY + 4, 1, 2);
-    drawSpriteScaled(ctx, HEADS[ch.id], sp, sx, cardY + 4, 1, 2);
+    drawSpriteScaled(ctx, BACK_LAYERS[ch.id].stand, sp, sx, cardY + 6, 1, 2);
+    drawSpriteScaled(ctx, grid, sp, sx, cardY + 6, 1, 2);
+    drawSpriteScaled(ctx, ACCENTS[ch.id].stand, sp, sx, cardY + 6, 1, 2);
+    drawSpriteScaled(ctx, HEADS[ch.id], sp, sx, cardY + 6, 1, 2);
     ctx.fillStyle = '#fff';
-    ctx.fillText(ch.name, x + cardW / 2, cardY + 62);
-    ctx.fillText('HP ' + ch.hp, x + cardW / 2, cardY + 74);
-    ctx.fillText('MP ' + ch.mp, x + cardW / 2, cardY + 84);
+    ctx.fillText(ch.name, x + cardW / 2, cardY + 88);
+    ctx.fillText('HP ' + ch.hp, x + cardW / 2, cardY + 100);
+    ctx.fillText('MP ' + ch.mp, x + cardW / 2, cardY + 110);
   }
 
   ctx.fillStyle = '#aaa';
