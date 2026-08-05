@@ -14,16 +14,45 @@ const STARS = [
   [40, 40], [120, 42], [200, 44], [280, 42],
 ];
 
+const FLASH_CACHE = new Map();
+
+function flashPalette(palette) {
+  let out = FLASH_CACHE.get(palette);
+  if (out) return out;
+  out = {};
+  for (const key in palette) {
+    const n = parseInt(palette[key].slice(1), 16);
+    const r = (n >> 16) & 255;
+    const g = (n >> 8) & 255;
+    const b = n & 255;
+    const m = 0.72;
+    out[key] = '#' + (
+      (Math.round(r + (255 - r) * m) << 16) |
+      (Math.round(g + (255 - g) * m) << 8) |
+      Math.round(b + (255 - b) * m)
+    ).toString(16).padStart(6, '0');
+  }
+  FLASH_CACHE.set(palette, out);
+  return out;
+}
+
 function render(ctx, game) {
   ctx.imageSmoothingEnabled = false;
   if (game.state === 'menu') {
     drawMenu(ctx, game);
     return;
   }
+  const sh = game.shakeTimer > 0
+    ? { x: (Math.random() * 2 - 1) * game.shakeMag, y: (Math.random() * 2 - 1) * game.shakeMag }
+    : { x: 0, y: 0 };
+  ctx.save();
+  ctx.translate(sh.x, sh.y);
   drawSky(ctx, game.camera);
   drawLevel(ctx, game.level, game.camera);
   drawEnemies(ctx, game.enemies, game.camera);
   drawPlayer(ctx, game.player, game.camera);
+  drawParticles(ctx, game.camera);
+  ctx.restore();
   drawHUD(ctx, game);
   if (game.state === 'complete') drawComplete(ctx);
 }
@@ -92,11 +121,12 @@ function drawLevel(ctx, level, camera) {
   }
 }
 
-function drawSpriteScaled(ctx, grid, palette, x, y, facing, scale) {
+function drawSpriteScaled(ctx, grid, palette, x, y, facing, scale, flash) {
+  const pal = flash ? flashPalette(palette) : palette;
   const w = grid[0].length;
   for (let row = 0; row < grid.length; row++) {
     for (let col = 0; col < w; col++) {
-      const color = palette[grid[row][col]];
+      const color = pal[grid[row][col]];
       if (!color) continue;
       const sx = x + (facing > 0 ? col : w - 1 - col) * scale;
       ctx.fillStyle = color;
@@ -105,26 +135,68 @@ function drawSpriteScaled(ctx, grid, palette, x, y, facing, scale) {
   }
 }
 
-function drawSprite(ctx, grid, palette, x, y, facing) {
-  drawSpriteScaled(ctx, grid, palette, x, y, facing, 1);
+function drawSprite(ctx, grid, palette, x, y, facing, flash) {
+  drawSpriteScaled(ctx, grid, palette, x, y, facing, 1, flash);
+}
+
+function spriteOffsets(grid, hitboxW, hitboxH) {
+  const gx = grid[0].length;
+  const gy = grid.length;
+  return {
+    x: Math.round((hitboxW - gx) / 2),
+    y: hitboxH - gy,
+  };
 }
 
 function drawPlayer(ctx, player, camera) {
+  const p = CONFIG.PLAYER;
+  const h = player.h();
   const x = Math.round(player.x - camera.x);
   const y = Math.round(player.y - camera.y);
   const sp = CLASS_SPRITES[player.char.id];
   const grid = POSES[player.animState][player.frameIndex];
+  const off = spriteOffsets(grid, p.W, h);
   ctx.globalAlpha = player.invulnTimer > 0 ? 0.4 : 1;
-  drawSprite(ctx, grid, sp.palette, x, y, player.facing);
-  if (sp.head) drawSprite(ctx, sp.head, sp.palette, x, y, player.facing);
+  drawSprite(ctx, grid, sp.palette, x + off.x, y + off.y, player.facing);
+  if (sp.accent) drawSprite(ctx, sp.accent, sp.palette, x + off.x, y + off.y, player.facing);
+  if (sp.head) drawSprite(ctx, sp.head, sp.palette, x + off.x, y + off.y, player.facing);
   ctx.globalAlpha = 1;
-  if (player.attackTimer > 0) {
-    const ax = player.facing > 0 ? x + CONFIG.PLAYER.W : x - CONFIG.ATTACK.RANGE;
-    ctx.fillStyle = 'rgba(255,230,120,0.85)';
-    ctx.fillRect(ax, y + 6, CONFIG.ATTACK.RANGE, 6);
-    ctx.fillStyle = 'rgba(255,255,255,0.9)';
-    ctx.fillRect(ax, y + 7, CONFIG.ATTACK.RANGE, 2);
+  if (player.animState === 'attack') {
+    const wp = WEAPONS[player.char.id];
+    if (wp) drawWeapon(ctx, wp, sp.palette, x, y, player.facing, off);
   }
+  if (player.isStriking()) drawSlashArc(ctx, player, x, y);
+}
+
+function drawWeapon(ctx, wp, palette, x, y, facing, off) {
+  const grid = wp.grid;
+  const gx = grid[0].length;
+  const wpx = x + off.x + (facing > 0 ? wp.dx : SPRITE_W - wp.dx - gx);
+  drawSprite(ctx, grid, palette, wpx, y + off.y + wp.dy, facing);
+}
+
+function drawSlashArc(ctx, player, x, y) {
+  const p = CONFIG.PLAYER;
+  const cy = y + p.H * 0.45;
+  const cx = x + p.W / 2;
+  ctx.strokeStyle = 'rgba(255,255,255,0.9)';
+  ctx.lineWidth = 2;
+  ctx.beginPath();
+  if (player.facing > 0) {
+    ctx.arc(cx + 8, cy, 16, -Math.PI / 2, Math.PI / 2);
+  } else {
+    ctx.arc(cx - 8, cy, 16, Math.PI / 2, Math.PI * 1.5);
+  }
+  ctx.stroke();
+  ctx.strokeStyle = 'rgba(120,220,255,0.8)';
+  ctx.lineWidth = 3;
+  ctx.beginPath();
+  if (player.facing > 0) {
+    ctx.arc(cx + 8, cy, 13, -Math.PI / 2.6, Math.PI / 2.6);
+  } else {
+    ctx.arc(cx - 8, cy, 13, Math.PI - Math.PI / 2.6, Math.PI + Math.PI / 2.6);
+  }
+  ctx.stroke();
 }
 
 function drawEnemies(ctx, enemies, camera) {
@@ -133,18 +205,22 @@ function drawEnemies(ctx, enemies, camera) {
     const x = Math.round(enemy.x - camera.x);
     const y = Math.round(enemy.y - camera.y);
     if (enemy.dead) {
-      const a = clamp(enemy.deathTimer / 0.25, 0, 1) * 0.6;
-      ctx.fillStyle = 'rgba(178,59,74,' + a.toFixed(2) + ')';
-      ctx.fillRect(x, y, e.W, e.H);
+      const a = clamp(enemy.deathTimer / 0.6, 0, 1);
+      ctx.globalAlpha = a;
+      drawSprite(ctx, ENEMY_SPRITES[1], ENEMY_PALETTE, x - 1, y, enemy.dir);
+      ctx.globalAlpha = 1;
       continue;
     }
     const frame = Math.floor(enemy.animTime * 8) % ENEMY_SPRITES.length;
-    drawSprite(ctx, ENEMY_SPRITES[frame], ENEMY_PALETTE, x, y, enemy.dir);
-    if (enemy.hitTimer > 0) {
-      ctx.fillStyle = 'rgba(255,255,255,0.6)';
-      ctx.fillRect(x, y, e.W, e.H);
-    }
+    drawSprite(ctx, ENEMY_SPRITES[frame], ENEMY_PALETTE, x - 1, y, enemy.dir, enemy.hitTimer > 0);
     drawBar(ctx, x, y - 4, e.W, 3, enemy.hp / enemy.maxHp, '#40d040', '#2a5a2a');
+  }
+}
+
+function drawParticles(ctx, camera) {
+  for (const p of game.particles) {
+    ctx.fillStyle = p.color;
+    ctx.fillRect(Math.round(p.x - camera.x), Math.round(p.y - camera.y), p.size, p.size);
   }
 }
 
@@ -198,8 +274,11 @@ function drawMenu(ctx, game) {
     ctx.fillStyle = selected ? '#1a1a2a' : '#11151f';
     ctx.fillRect(x, cardY, cardW, cardH);
     const sp = CLASS_SPRITES[ch.id];
-    drawSpriteScaled(ctx, POSES.idle[0], sp.palette, x + (cardW - 28) / 2, cardY + 4, 1, 2);
-    if (sp.head) drawSpriteScaled(ctx, sp.head, sp.palette, x + (cardW - 28) / 2, cardY + 4, 1, 2);
+    const grid = POSES.idle[0];
+    const sx = x + Math.round((cardW - grid[0].length * 2) / 2);
+    drawSpriteScaled(ctx, grid, sp.palette, sx, cardY + 4, 1, 2);
+    if (sp.accent) drawSpriteScaled(ctx, sp.accent, sp.palette, sx, cardY + 4, 1, 2);
+    if (sp.head) drawSpriteScaled(ctx, sp.head, sp.palette, sx, cardY + 4, 1, 2);
     ctx.fillStyle = '#fff';
     ctx.fillText(ch.name, x + cardW / 2, cardY + 62);
     ctx.fillText('HP ' + ch.hp, x + cardW / 2, cardY + 74);
@@ -209,7 +288,7 @@ function drawMenu(ctx, game) {
   ctx.fillStyle = '#aaa';
   ctx.fillText('← → elegir    Saltar/Golpear: comenzar', CONFIG.VIEW_W / 2, CONFIG.VIEW_H - 34);
   ctx.fillText('Mover: ← → / A D    Saltar: ↑ W Espacio K', CONFIG.VIEW_W / 2, CONFIG.VIEW_H - 24);
-  ctx.fillText('Golpear: Ctrl / J', CONFIG.VIEW_W / 2, CONFIG.VIEW_H - 14);
+  ctx.fillText('Golpear: Ctrl / J    Agacharse: ↓ / S', CONFIG.VIEW_W / 2, CONFIG.VIEW_H - 14);
   ctx.textAlign = 'left';
 }
 
