@@ -9,10 +9,21 @@ class Player {
     this.onGround = false;
     this.hp = char.hp;
     this.mp = char.mp;
+    this.attack = char.attack;
+    this.attackTimer = 0;
+    this.attackCooldown = 0;
+    this.invulnTimer = 0;
   }
 
   update(dt, input, level) {
     const p = CONFIG.PLAYER;
+    this.attackTimer = Math.max(0, this.attackTimer - dt);
+    this.attackCooldown = Math.max(0, this.attackCooldown - dt);
+    this.invulnTimer = Math.max(0, this.invulnTimer - dt);
+    if (input.isDown('attack') && this.attackCooldown <= 0) {
+      this.attackTimer = CONFIG.ATTACK.DURATION;
+      this.attackCooldown = CONFIG.ATTACK.COOLDOWN;
+    }
     const dir = (input.isDown('right') ? 1 : 0) - (input.isDown('left') ? 1 : 0);
     if (dir !== 0) {
       this.vx += dir * p.ACCEL * dt;
@@ -101,6 +112,16 @@ class Player {
     this.vx = 0;
     this.vy = 0;
     this.onGround = false;
+  }
+
+  getAttackHitbox() {
+    const p = CONFIG.PLAYER;
+    return {
+      x: this.facing > 0 ? this.x + p.W : this.x - CONFIG.ATTACK.RANGE,
+      y: this.y,
+      w: CONFIG.ATTACK.RANGE,
+      h: p.H,
+    };
   }
 }
 

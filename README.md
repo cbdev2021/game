@@ -18,16 +18,16 @@ Juego web estilo **Cadash** (action-RPG de scroll lateral, Taito 1989) hecho con
 
 ## Personajes
 
-- **Guerrero**: más HP, salto medio.
-- **Mago**: mucha MP, menos HP.
-- **Ninja**: el más rápido, salto alto.
-- **Sacerdotisa**: HP y MP balanceados.
+- **Guerrero**: más HP, golpe fuerte, salto medio.
+- **Mago**: mucha MP, menos HP, golpe débil.
+- **Ninja**: el más rápido, salto alto, golpe medio.
+- **Sacerdotisa**: HP y MP balanceados, golpe medio.
 
 ## Hoja de ruta
 
 1. ✅ Motor base: menú, 4 personajes, nivel 1 con scroll, física, cámara, HUD.
-2. ⏳ Enemigos con vida + ataque cuerpo a cuerpo.
-3. XP, niveles y stats RPG.
+2. ✅ Enemigos con vida + ataque cuerpo a cuerpo.
+3. ⏳ XP, niveles y stats RPG.
 4. Magia/MP, enemigos a distancia, objetos/pociones.
 5. Tiendas y NPCs.
 6. Jefes finales.

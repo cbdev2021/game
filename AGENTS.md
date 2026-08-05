@@ -26,8 +26,9 @@ Reglas permanentes para asistentes de IA que trabajen en este proyecto.
 | `js/config.js` | Constantes de juego (tamaño, física) y helper `clamp`. |
 | `js/input.js` | Mapa de acciones a teclas (`left`, `right`, `down`, `jump`, `attack`). |
 | `js/entities/classes.js` | Datos de los 4 personajes. |
-| `js/entities/player.js` | Física y colisiones del jugador. |
-| `js/levels/level1.js` | Tilemap del nivel 1 (se genera por código). |
+| `js/entities/player.js` | Física, colisiones y ataque del jugador. |
+| `js/entities/enemy.js` | Enemigos: vida, patrulla y colisiones. |
+| `js/levels/level1.js` | Tilemap del nivel 1 y posiciones de enemigos. |
 | `js/camera.js` | Cámara con scroll. |
 | `js/render.js` | Dibujado (nivel, jugador, HUD, menú). |
 | `js/main.js` | Loop del juego y máquina de estados (`menu`, `play`, `complete`). |
@@ -37,12 +38,12 @@ Reglas permanentes para asistentes de IA que trabajen en este proyecto.
 - Mover: `←` `→` o `A` `D`
 - Saltar: `↑` `W` `Espacio` `K`
 - Agacharse: `↓` `S` (reservado)
-- Golpear: `Ctrl` `J` (combate en tanda 2)
+- Golpear: `Ctrl` `J` (combate activo desde tanda 2)
 
 ## Hoja de ruta de tandas
 
 1. ✅ Motor base: menú, 4 personajes, nivel con scroll, física, cámara, HUD.
-2. Enemigos con vida + ataque cuerpo a cuerpo.
+2. ✅ Enemigos con vida + ataque cuerpo a cuerpo.
 3. XP, niveles y stats RPG.
 4. Magia/MP, enemigos a distancia, objetos/pociones.
 5. Tiendas y NPCs.
@@ -52,3 +53,4 @@ Reglas permanentes para asistentes de IA que trabajen en este proyecto.
 
 - Sintaxis: `node --check <archivo>.js` en cada `.js`.
 - Física/nivel: simulación Node con un autojugador (mover+saltar sobre pozos/muros) corriendo cada una de las 4 clases de punta a punta del nivel.
+- Combate: el autojugador debe derrotar a todos los enemigos y completar el nivel con las 4 clases.

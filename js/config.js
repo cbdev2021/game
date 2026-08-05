@@ -11,6 +11,15 @@ const CONFIG = {
     ACCEL: 2600,
     FRICTION: 1800,
   },
+  ENEMY: {
+    W: 14,
+    H: 18,
+  },
+  ATTACK: {
+    RANGE: 20,
+    DURATION: 0.18,
+    COOLDOWN: 0.32,
+  },
 };
 
 function clamp(v, lo, hi) {

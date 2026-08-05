@@ -22,6 +22,7 @@ function render(ctx, game) {
   }
   drawSky(ctx, game.camera);
   drawLevel(ctx, game.level, game.camera);
+  drawEnemies(ctx, game.enemies, game.camera);
   drawPlayer(ctx, game.player, game.camera);
   drawHUD(ctx, game);
   if (game.state === 'complete') drawComplete(ctx);
@@ -79,6 +80,7 @@ function drawPlayer(ctx, player, camera) {
   const x = Math.round(player.x - camera.x);
   const y = Math.round(player.y - camera.y);
   const p = CONFIG.PLAYER;
+  ctx.globalAlpha = player.invulnTimer > 0 ? 0.4 : 1;
   ctx.fillStyle = '#0a0a0a';
   ctx.fillRect(x - 1, y - 1, p.W + 2, p.H + 2);
   ctx.fillStyle = player.char.color;
@@ -90,6 +92,36 @@ function drawPlayer(ctx, player, camera) {
   ctx.fillRect(eyeX, y + 5, 3, 3);
   ctx.fillStyle = '#000';
   ctx.fillRect(eyeX + 1, y + 6, 1, 1);
+  ctx.globalAlpha = 1;
+  if (player.attackTimer > 0) {
+    const ax = player.facing > 0 ? x + p.W : x - CONFIG.ATTACK.RANGE;
+    ctx.fillStyle = 'rgba(255,230,120,0.85)';
+    ctx.fillRect(ax, y + 6, CONFIG.ATTACK.RANGE, 6);
+    ctx.fillStyle = 'rgba(255,255,255,0.9)';
+    ctx.fillRect(ax, y + 7, CONFIG.ATTACK.RANGE, 2);
+  }
+}
+
+function drawEnemies(ctx, enemies, camera) {
+  const e = CONFIG.ENEMY;
+  for (const enemy of enemies) {
+    const x = Math.round(enemy.x - camera.x);
+    const y = Math.round(enemy.y - camera.y);
+    if (enemy.dead) {
+      const a = clamp(enemy.deathTimer / 0.25, 0, 1) * 0.6;
+      ctx.fillStyle = 'rgba(178,59,74,' + a.toFixed(2) + ')';
+      ctx.fillRect(x, y, e.W, e.H);
+      continue;
+    }
+    ctx.fillStyle = '#0a0a0a';
+    ctx.fillRect(x - 1, y - 1, e.W + 2, e.H + 2);
+    ctx.fillStyle = enemy.hitTimer > 0 ? '#ffffff' : '#b23b4a';
+    ctx.fillRect(x, y, e.W, e.H);
+    const eyeX = enemy.dir > 0 ? x + e.W - 4 : x + 2;
+    ctx.fillStyle = '#ffe066';
+    ctx.fillRect(eyeX, y + 4, 3, 3);
+    drawBar(ctx, x, y - 4, e.W, 3, enemy.hp / enemy.maxHp, '#40d040', '#2a5a2a');
+  }
 }
 
 function drawHUD(ctx, game) {

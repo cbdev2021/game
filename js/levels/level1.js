@@ -64,6 +64,13 @@ class Level1 {
     this.spawnX = CONFIG.TILE;
     this.spawnY = 11 * CONFIG.TILE - CONFIG.PLAYER.H;
     this.goalX = 185 * CONFIG.TILE;
+    this.enemyDefs = [
+      { x: 12, min: 6, max: 26 },
+      { x: 32, min: 26, max: 40 },
+      { x: 60, min: 52, max: 74 },
+      { x: 112, min: 102, max: 128 },
+      { x: 172, min: 162, max: 186 },
+    ];
   }
 
   isSolid(tx, ty) {
