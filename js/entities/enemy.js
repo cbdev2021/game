@@ -13,6 +13,8 @@ class Enemy {
     this.hitTimer = 0;
     this.deathTimer = 0;
     this.dead = false;
+    this.xpReward = 25;
+    this.animTime = 0;
     this.minX = def.min * CONFIG.TILE;
     this.maxX = def.max * CONFIG.TILE;
   }
@@ -26,6 +28,7 @@ class Enemy {
     this.onGround = false;
     this.collideVertical(level);
     this.hitTimer = Math.max(0, this.hitTimer - dt);
+    this.animTime += dt;
   }
 
   applyBounds() {

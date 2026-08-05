@@ -13,6 +13,10 @@ class Player {
     this.attackTimer = 0;
     this.attackCooldown = 0;
     this.invulnTimer = 0;
+    this.animState = 'idle';
+    this.prevAnim = null;
+    this.animTime = 0;
+    this.frameIndex = 0;
   }
 
   update(dt, input, level) {
@@ -48,6 +52,20 @@ class Player {
     this.y += this.vy * dt;
     this.onGround = false;
     this.collideVertical(level);
+
+    this.prevAnim = this.animState;
+    this.animState = this.getAnimState();
+    if (this.animState !== this.prevAnim) this.animTime = 0;
+    this.animTime += dt;
+    const counts = { idle: 2, run: 3, jump: 1, attack: 1 };
+    const rates = { idle: 6, run: 10, jump: 8, attack: 14 };
+    this.frameIndex = Math.floor(this.animTime * rates[this.animState]) % counts[this.animState];
+  }
+
+  getAnimState() {
+    if (this.attackTimer > 0) return 'attack';
+    if (!this.onGround) return 'jump';
+    return Math.abs(this.vx) > 5 ? 'run' : 'idle';
   }
 
   applyFriction(dt, f) {

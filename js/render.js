@@ -57,44 +57,69 @@ function drawLevel(ctx, level, camera) {
       if (tile === '#') {
         ctx.fillStyle = '#7a4f28';
         ctx.fillRect(px, py, CONFIG.TILE, 3);
+        ctx.fillStyle = '#8f5f30';
+        ctx.fillRect(px, py + 7, 3, 2);
+        ctx.fillRect(px + 8, py + 11, 3, 2);
+        if ((tx * 7 + ty * 13) % 4 === 0) {
+          ctx.fillStyle = '#8f5f30';
+          ctx.fillRect(px + 5, py + 4, 2, 2);
+        }
       } else if (tile === 'T') {
         ctx.fillStyle = '#3c7a1e';
         ctx.fillRect(px, py + CONFIG.TILE - 4, CONFIG.TILE, 4);
+        ctx.fillStyle = '#6ab83a';
+        if (tx % 2 === 0) ctx.fillRect(px + 2, py + 2, 2, 2);
+        if (tx % 3 === 0) ctx.fillRect(px + 10, py + 4, 2, 2);
       } else if (tile === '=') {
-        ctx.fillStyle = '#5f4526';
+        ctx.fillStyle = '#b08a4a';
         ctx.fillRect(px, py, CONFIG.TILE, 2);
+        ctx.fillStyle = '#5f4526';
+        ctx.fillRect(px, py + 8, CONFIG.TILE, 1);
+        ctx.fillRect(px, py, 2, CONFIG.TILE);
+        ctx.fillRect(px + CONFIG.TILE - 2, py, 2, CONFIG.TILE);
       } else if (tile === 'G') {
         ctx.fillStyle = 'rgba(62,207,224,0.35)';
         ctx.fillRect(px - 2, py - 2, CONFIG.TILE + 4, CONFIG.TILE * 2 + 4);
         ctx.fillStyle = color;
         ctx.fillRect(px, py, CONFIG.TILE, CONFIG.TILE * 2);
+        ctx.fillStyle = '#0a1a2a';
+        ctx.fillRect(px + 2, py + 2, CONFIG.TILE - 4, CONFIG.TILE * 2 - 4);
         ctx.fillStyle = '#eaffff';
-        ctx.fillRect(px + 6, py + 6, 4, 4);
+        ctx.fillRect(px + 6, py + 5, 4, 4);
         ctx.fillRect(px + 6, py + 18, 4, 4);
       }
     }
   }
 }
 
+function drawSpriteScaled(ctx, grid, palette, x, y, facing, scale) {
+  const w = grid[0].length;
+  for (let row = 0; row < grid.length; row++) {
+    for (let col = 0; col < w; col++) {
+      const color = palette[grid[row][col]];
+      if (!color) continue;
+      const sx = x + (facing > 0 ? col : w - 1 - col) * scale;
+      ctx.fillStyle = color;
+      ctx.fillRect(sx, y + row * scale, scale, scale);
+    }
+  }
+}
+
+function drawSprite(ctx, grid, palette, x, y, facing) {
+  drawSpriteScaled(ctx, grid, palette, x, y, facing, 1);
+}
+
 function drawPlayer(ctx, player, camera) {
   const x = Math.round(player.x - camera.x);
   const y = Math.round(player.y - camera.y);
-  const p = CONFIG.PLAYER;
+  const sp = CLASS_SPRITES[player.char.id];
+  const grid = POSES[player.animState][player.frameIndex];
   ctx.globalAlpha = player.invulnTimer > 0 ? 0.4 : 1;
-  ctx.fillStyle = '#0a0a0a';
-  ctx.fillRect(x - 1, y - 1, p.W + 2, p.H + 2);
-  ctx.fillStyle = player.char.color;
-  ctx.fillRect(x, y, p.W, p.H);
-  ctx.fillStyle = '#3a1c14';
-  ctx.fillRect(x, y + p.H - 5, p.W, 5);
-  const eyeX = player.facing > 0 ? x + p.W - 4 : x + 2;
-  ctx.fillStyle = '#fff';
-  ctx.fillRect(eyeX, y + 5, 3, 3);
-  ctx.fillStyle = '#000';
-  ctx.fillRect(eyeX + 1, y + 6, 1, 1);
+  drawSprite(ctx, grid, sp.palette, x, y, player.facing);
+  if (sp.head) drawSprite(ctx, sp.head, sp.palette, x, y, player.facing);
   ctx.globalAlpha = 1;
   if (player.attackTimer > 0) {
-    const ax = player.facing > 0 ? x + p.W : x - CONFIG.ATTACK.RANGE;
+    const ax = player.facing > 0 ? x + CONFIG.PLAYER.W : x - CONFIG.ATTACK.RANGE;
     ctx.fillStyle = 'rgba(255,230,120,0.85)';
     ctx.fillRect(ax, y + 6, CONFIG.ATTACK.RANGE, 6);
     ctx.fillStyle = 'rgba(255,255,255,0.9)';
@@ -113,13 +138,12 @@ function drawEnemies(ctx, enemies, camera) {
       ctx.fillRect(x, y, e.W, e.H);
       continue;
     }
-    ctx.fillStyle = '#0a0a0a';
-    ctx.fillRect(x - 1, y - 1, e.W + 2, e.H + 2);
-    ctx.fillStyle = enemy.hitTimer > 0 ? '#ffffff' : '#b23b4a';
-    ctx.fillRect(x, y, e.W, e.H);
-    const eyeX = enemy.dir > 0 ? x + e.W - 4 : x + 2;
-    ctx.fillStyle = '#ffe066';
-    ctx.fillRect(eyeX, y + 4, 3, 3);
+    const frame = Math.floor(enemy.animTime * 8) % ENEMY_SPRITES.length;
+    drawSprite(ctx, ENEMY_SPRITES[frame], ENEMY_PALETTE, x, y, enemy.dir);
+    if (enemy.hitTimer > 0) {
+      ctx.fillStyle = 'rgba(255,255,255,0.6)';
+      ctx.fillRect(x, y, e.W, e.H);
+    }
     drawBar(ctx, x, y - 4, e.W, 3, enemy.hp / enemy.maxHp, '#40d040', '#2a5a2a');
   }
 }
@@ -163,7 +187,7 @@ function drawMenu(ctx, game) {
   const gap = 8;
   const startX = Math.floor((CONFIG.VIEW_W - (4 * cardW + 3 * gap)) / 2);
   const cardY = 66;
-  const cardH = 92;
+  const cardH = 104;
 
   for (let i = 0; i < CHARACTERS.length; i++) {
     const ch = CHARACTERS[i];
@@ -173,12 +197,13 @@ function drawMenu(ctx, game) {
     ctx.fillRect(x - 1, cardY - 1, cardW + 2, cardH + 2);
     ctx.fillStyle = selected ? '#1a1a2a' : '#11151f';
     ctx.fillRect(x, cardY, cardW, cardH);
-    ctx.fillStyle = ch.color;
-    ctx.fillRect(x + (cardW - 14) / 2, cardY + 8, 14, 26);
+    const sp = CLASS_SPRITES[ch.id];
+    drawSpriteScaled(ctx, POSES.idle[0], sp.palette, x + (cardW - 28) / 2, cardY + 4, 1, 2);
+    if (sp.head) drawSpriteScaled(ctx, sp.head, sp.palette, x + (cardW - 28) / 2, cardY + 4, 1, 2);
     ctx.fillStyle = '#fff';
-    ctx.fillText(ch.name, x + cardW / 2, cardY + 46);
-    ctx.fillText('HP ' + ch.hp, x + cardW / 2, cardY + 60);
-    ctx.fillText('MP ' + ch.mp, x + cardW / 2, cardY + 70);
+    ctx.fillText(ch.name, x + cardW / 2, cardY + 62);
+    ctx.fillText('HP ' + ch.hp, x + cardW / 2, cardY + 74);
+    ctx.fillText('MP ' + ch.mp, x + cardW / 2, cardY + 84);
   }
 
   ctx.fillStyle = '#aaa';
