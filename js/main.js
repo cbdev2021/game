@@ -6,6 +6,7 @@ canvas.height = DEBUG_MODE ? CONFIG.VIEW_H * 2 : CONFIG.VIEW_H;
 
 const input = new Input();
 bindTouchControls(input);
+bindDpad(input);
 bindFullscreenButton();
 
 const game = {
