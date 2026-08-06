@@ -10,6 +10,15 @@ body {
   overflow: hidden;
 }
 
+#stage {
+  position: relative;
+  width: 100vw;
+  height: 100vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
 #game {
   image-rendering: pixelated;
   image-rendering: crisp-edges;
@@ -17,6 +26,32 @@ body {
   height: auto;
   background: #000;
   box-shadow: 0 0 40px rgba(0, 0, 0, 0.8);
+}
+
+#fullscreen-btn {
+  position: absolute;
+  top: 8px;
+  right: 8px;
+  z-index: 10;
+  width: 44px;
+  height: 44px;
+  padding: 8px;
+  line-height: 1;
+  border: 2px solid rgba(255, 255, 255, 0.4);
+  background: rgba(0, 0, 0, 0.45);
+  color: #fff;
+  border-radius: 10px;
+  cursor: pointer;
+  touch-action: none;
+  user-select: none;
+  -webkit-user-select: none;
+}
+
+#fullscreen-btn svg {
+  display: block;
+  width: 100%;
+  height: 100%;
+  pointer-events: none;
 }
 
 #touch-ui {
@@ -27,6 +62,12 @@ body {
   html,
   body {
     align-items: flex-start;
+  }
+
+  #fullscreen-btn {
+    width: 56px;
+    height: 56px;
+    font-size: 28px;
   }
 
   #touch-ui {
@@ -52,11 +93,11 @@ body {
     display: grid;
     grid-template-columns: repeat(3, 1fr);
     grid-template-rows: repeat(3, 1fr);
-    gap: 8px;
-    width: 36vmin;
-    max-width: 240px;
-    height: 36vmin;
-    max-height: 240px;
+    gap: 10px;
+    width: 38vmin;
+    max-width: 260px;
+    height: 38vmin;
+    max-height: 260px;
   }
 
   .dpad .touch-btn:nth-child(1) { grid-column: 1; grid-row: 2; }
@@ -76,6 +117,7 @@ body {
   }
 
   .touch-btn {
+    position: relative;
     border: 2px solid rgba(255, 255, 255, 0.35);
     background: rgba(255, 255, 255, 0.14);
     color: rgba(255, 255, 255, 0.9);
@@ -88,24 +130,54 @@ body {
     cursor: pointer;
   }
 
+  .touch-btn::after {
+    content: '';
+    position: absolute;
+    inset: -14px;
+    border-radius: inherit;
+  }
+
   .touch-btn:active {
     background: rgba(255, 255, 255, 0.4);
   }
 
   .dpad .touch-btn {
-    font-size: 28px;
+    font-size: 30px;
     line-height: 1;
   }
 
   .touch-btn.big {
-    border-radius: 16px;
-    font-size: 17px;
-    min-width: 86px;
-    min-height: 86px;
+    border-radius: 18px;
+    font-size: 18px;
+    min-width: 92px;
+    min-height: 92px;
     padding: 6px;
   }
 
   .touch-btn.red { background: rgba(200, 40, 40, 0.55); border-color: rgba(255, 160, 160, 0.5); }
   .touch-btn.green { background: rgba(40, 160, 60, 0.55); border-color: rgba(160, 255, 170, 0.5); }
   .touch-btn.yellow { background: rgba(200, 150, 30, 0.55); border-color: rgba(255, 220, 140, 0.5); }
+}
+
+@media (pointer: coarse) and (min-width: 768px) {
+  #fullscreen-btn {
+    width: 64px;
+    height: 64px;
+    font-size: 32px;
+  }
+
+  .dpad {
+    max-width: 300px;
+    max-height: 300px;
+  }
+
+  .dpad .touch-btn {
+    font-size: 34px;
+  }
+
+  .touch-btn.big {
+    font-size: 20px;
+    min-width: 120px;
+    min-height: 120px;
+  }
 }

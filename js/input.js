@@ -80,3 +80,23 @@ function bindTouchControls(input) {
     });
   }
 }
+
+function bindFullscreenButton() {
+  const stage = document.getElementById('stage');
+  const btn = document.getElementById('fullscreen-btn');
+  if (!stage || !btn) return;
+  const enterFn = stage.requestFullscreen || stage.webkitRequestFullscreen;
+  const exitFn = document.exitFullscreen || document.webkitExitFullscreen;
+  const isFullscreen = () => document.fullscreenElement || document.webkitFullscreenElement;
+  if (!enterFn) {
+    btn.style.display = 'none';
+    return;
+  }
+  btn.addEventListener('click', () => {
+    if (isFullscreen()) {
+      if (exitFn) exitFn.call(document);
+    } else if (enterFn) {
+      enterFn.call(stage);
+    }
+  });
+}
