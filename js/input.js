@@ -60,6 +60,9 @@ class Input {
 function bindTouchControls(input) {
   const ui = document.getElementById('touch-ui');
   if (!ui) return;
+  if (ui.addEventListener) {
+    ui.addEventListener('contextmenu', (e) => e.preventDefault());
+  }
   const buttons = ui.querySelectorAll('.touch-btn');
   for (const btn of buttons) {
     const action = btn.dataset.action;
