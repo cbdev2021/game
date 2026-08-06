@@ -14,7 +14,7 @@ body {
   image-rendering: pixelated;
   image-rendering: crisp-edges;
   width: min(100vw, calc(100vh * 320 / 224));
-  max-height: 100vh;
+  height: auto;
   background: #000;
   box-shadow: 0 0 40px rgba(0, 0, 0, 0.8);
 }
@@ -29,19 +29,15 @@ body {
     align-items: flex-start;
   }
 
-  #game {
-    max-height: calc(100vh - 28vh);
-  }
-
   #touch-ui {
     display: flex;
     position: fixed;
     left: 0;
     right: 0;
     bottom: 0;
-    height: 26vh;
-    min-height: 120px;
-    padding: 0 4vw;
+    height: 30vh;
+    min-height: 140px;
+    padding: 0 3vw;
     align-items: center;
     justify-content: space-between;
     box-sizing: border-box;
@@ -56,11 +52,11 @@ body {
     display: grid;
     grid-template-columns: repeat(3, 1fr);
     grid-template-rows: repeat(3, 1fr);
-    gap: 6px;
-    width: 34vmin;
-    max-width: 210px;
-    height: 34vmin;
-    max-height: 210px;
+    gap: 8px;
+    width: 36vmin;
+    max-width: 240px;
+    height: 36vmin;
+    max-height: 240px;
   }
 
   .dpad .touch-btn:nth-child(1) { grid-column: 1; grid-row: 2; }
@@ -69,8 +65,14 @@ body {
   .dpad .touch-btn:nth-child(4) { grid-column: 2; grid-row: 3; }
 
   .actions {
-    display: flex;
+    display: grid;
+    grid-template-columns: repeat(2, auto);
     gap: 10px;
+  }
+
+  .actions .touch-btn:nth-child(3) {
+    grid-column: 1 / -1;
+    justify-self: center;
   }
 
   .touch-btn {
@@ -91,16 +93,19 @@ body {
   }
 
   .dpad .touch-btn {
-    font-size: 22px;
+    font-size: 28px;
     line-height: 1;
   }
 
   .touch-btn.big {
-    border-radius: 14px;
-    font-size: 15px;
-    padding: 14px 10px;
+    border-radius: 16px;
+    font-size: 17px;
+    min-width: 86px;
+    min-height: 86px;
+    padding: 6px;
   }
 
   .touch-btn.red { background: rgba(200, 40, 40, 0.55); border-color: rgba(255, 160, 160, 0.5); }
   .touch-btn.green { background: rgba(40, 160, 60, 0.55); border-color: rgba(160, 255, 170, 0.5); }
+  .touch-btn.yellow { background: rgba(200, 150, 30, 0.55); border-color: rgba(255, 220, 140, 0.5); }
 }
