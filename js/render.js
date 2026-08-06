@@ -6,35 +6,19 @@ const STARS = [
   [40, 40], [120, 42], [200, 44], [280, 42],
 ];
 
+const CROUCH_SCALE = 0.72;
+
 function hash2(a, b) {
   const n = a * 374761393 + b * 668265263;
   return (Math.abs(n) % 997) / 997;
 }
 
-const FLASH_CACHE = new Map();
-
-function flashPalette(palette) {
-  let out = FLASH_CACHE.get(palette);
-  if (out) return out;
-  out = {};
-  for (const key in palette) {
-    const n = parseInt(palette[key].slice(1), 16);
-    const r = (n >> 16) & 255;
-    const g = (n >> 8) & 255;
-    const b = n & 255;
-    const m = 0.72;
-    out[key] = '#' + (
-      (Math.round(r + (255 - r) * m) << 16) |
-      (Math.round(g + (255 - g) * m) << 8) |
-      Math.round(b + (255 - b) * m)
-    ).toString(16).padStart(6, '0');
-  }
-  FLASH_CACHE.set(palette, out);
-  return out;
-}
-
 function render(ctx, game) {
   ctx.imageSmoothingEnabled = false;
+  if (DEBUG_MODE) {
+    drawDebug(ctx, game);
+    return;
+  }
   if (game.state === 'menu') {
     drawMenu(ctx, game);
     return;
@@ -52,6 +36,30 @@ function render(ctx, game) {
   ctx.restore();
   drawHUD(ctx, game);
   if (game.state === 'complete') drawComplete(ctx);
+}
+
+function drawArt(ctx, art, frameIdx, dx, dy, flip, sc) {
+  const img = art.img;
+  if (!img) return;
+  const s = sc || 1;
+  const w = art.fw * s;
+  const h = art.fh * s;
+  const sy = frameIdx * art.fh;
+  if (flip) {
+    ctx.save();
+    ctx.translate(dx + w, dy);
+    ctx.scale(-1, 1);
+    ctx.drawImage(img, 0, sy, art.fw, art.fh, 0, 0, w, h);
+    ctx.restore();
+  } else {
+    ctx.drawImage(img, 0, sy, art.fw, art.fh, dx, dy, w, h);
+  }
+}
+
+function drawTile(ctx, cells, idx, px, py) {
+  const img = ART.tile.img;
+  if (!img) return;
+  ctx.drawImage(img, idx * ART.tile.fw, 0, ART.tile.fw, ART.tile.fh, px, py, ART.tile.fw, ART.tile.fh);
 }
 
 function drawSky(ctx, camera) {
@@ -103,60 +111,12 @@ function drawLevel(ctx, level, camera, time) {
       if (!tile || tile === '.') continue;
       const px = tx * CONFIG.TILE - camera.x;
       const py = ty * CONFIG.TILE - camera.y;
-      if (tile === '#') drawDirt(ctx, px, py, tx, ty);
-      else if (tile === 'T') drawGrass(ctx, px, py, tx, ty);
+      if (tile === 'T') drawTile(ctx, ART.tile.grass, (tx * 7 + ty * 13) % ART.tile.grass.length, px, py);
+      else if (tile === '#') drawTile(ctx, ART.tile.dirt, (tx * 11 + ty * 3) % ART.tile.dirt.length, px, py);
       else if (tile === '=') drawPlatform(ctx, px, py);
       else if (tile === 'G') drawPortal(ctx, px, py, tx, ty, time);
     }
   }
-}
-
-function drawGrass(ctx, px, py, tx, ty) {
-  ctx.fillStyle = '#4a9426';
-  ctx.fillRect(px, py, CONFIG.TILE, CONFIG.TILE);
-  const bladeCols = ['#6cc23c', '#5ab22e', '#3f8a1e'];
-  for (let k = 0; k < 6; k++) {
-    const bx = px + Math.floor(hash2(tx * 3 + k, ty * 7 + k) * 14);
-    const bh = 2 + Math.floor(hash2(tx + k, ty + 11 + k) * 3);
-    ctx.fillStyle = bladeCols[k % 3];
-    ctx.fillRect(bx, py + 16 - bh - 1, 1, bh + 1);
-    ctx.fillStyle = '#8ad85a';
-    ctx.fillRect(bx, py + 16 - bh - 1, 1, 1);
-  }
-  ctx.fillStyle = '#3a7a1e';
-  for (let i = 0; i < 4; i++) {
-    const bx = px + Math.floor(i * 4 + hash2(tx, ty) * 2);
-    ctx.fillRect(bx, py + 13, 3, 3);
-  }
-  const fr = hash2(tx * 5 + 1, ty * 3 + 2);
-  if (fr < 0.2) {
-    const fx = px + 2 + Math.floor(fr * 11);
-    const fy = py + 1 + Math.floor(hash2(tx, ty + 9) * 8);
-    ctx.fillStyle = fr < 0.1 ? '#ffffff' : '#ff9ac8';
-    ctx.fillRect(fx, fy, 3, 3);
-    ctx.fillStyle = '#ffe066';
-    ctx.fillRect(fx + 1, fy + 1, 1, 1);
-  }
-}
-
-function drawDirt(ctx, px, py, tx, ty) {
-  ctx.fillStyle = '#8a5a2e';
-  ctx.fillRect(px, py, CONFIG.TILE, CONFIG.TILE);
-  ctx.fillStyle = '#5c3a1c';
-  ctx.fillRect(px, py, CONFIG.TILE, 3);
-  for (let k = 0; k < 2; k++) {
-    const sy = py + 5 + Math.floor(hash2(tx * 7 + k, ty * 13 + k) * 8);
-    const sx = px + Math.floor(hash2(tx + k * 3, ty + k * 5) * 9);
-    ctx.fillRect(sx, sy, 4 + Math.floor(hash2(tx + 1, ty + 2 + k) * 4), 1);
-  }
-  for (let k = 0; k < 3; k++) {
-    const px2 = px + Math.floor(hash2(tx * 11 + k, ty * 17 + k) * 12);
-    const py2 = py + 4 + Math.floor(hash2(tx * 3 + k, ty * 5 + k) * 9);
-    ctx.fillStyle = k === 0 ? '#a06a35' : '#6a4520';
-    ctx.fillRect(px2, py2, 2, hash2(tx + k, ty + k + 1) > 0.5 ? 2 : 1);
-  }
-  ctx.fillStyle = '#b07a44';
-  ctx.fillRect(px + Math.floor(hash2(tx, ty * 3 + 7) * 14), py + Math.floor(hash2(tx * 2, ty) * 13), 1, 1);
 }
 
 function drawPlatform(ctx, px, py) {
@@ -198,60 +158,24 @@ function drawPortal(ctx, px, py, tx, ty, time) {
   }
 }
 
-function drawSpriteScaled(ctx, grid, palette, x, y, facing, scale, flash) {
-  const pal = flash ? flashPalette(palette) : palette;
-  const w = grid[0].length;
-  for (let row = 0; row < grid.length; row++) {
-    for (let col = 0; col < w; col++) {
-      const color = pal[grid[row][col]];
-      if (!color) continue;
-      const sx = x + (facing > 0 ? col : w - 1 - col) * scale;
-      ctx.fillStyle = color;
-      ctx.fillRect(sx, y + row * scale, scale, scale);
-    }
-  }
-}
-
-function drawSprite(ctx, grid, palette, x, y, facing, flash) {
-  drawSpriteScaled(ctx, grid, palette, x, y, facing, 1, flash);
-}
-
-function spriteOffsets(grid, hitboxW, hitboxH) {
-  const gx = grid[0].length;
-  const gy = grid.length;
-  return {
-    x: Math.round((hitboxW - gx) / 2),
-    y: hitboxH - gy,
-  };
-}
-
 function drawPlayer(ctx, player, camera) {
+  const art = ART.hero[player.char.id];
+  if (!art || !art.img) return;
   const p = CONFIG.PLAYER;
   const h = player.h();
   const x = Math.round(player.x - camera.x);
   const y = Math.round(player.y - camera.y);
-  const cls = player.char.id;
-  const body = SPRITES[cls][player.animState][player.frameIndex];
-  const off = spriteOffsets(body, p.W, h);
   const crouch = player.animState === 'crouch' || player.animState === 'crouchWalk';
+  const sc = crouch ? CROUCH_SCALE : 1;
+  const frames = art.anims[player.animState];
+  const frame = frames[Math.min(player.frameIndex, frames.length - 1)];
+  const flip = art.facesLeft ? player.facing > 0 : player.facing < 0;
+  const dx = x + Math.round((p.W - art.fw * sc) / 2);
+  const dy = y + Math.round(h - art.foot * sc);
   ctx.globalAlpha = player.invulnTimer > 0 ? 0.4 : 1;
-  drawSprite(ctx, crouch ? BACK_LAYERS[cls].crouch : BACK_LAYERS[cls].stand, CLASS_PALETTES[cls], x + off.x, y + off.y, player.facing);
-  drawSprite(ctx, body, CLASS_PALETTES[cls], x + off.x, y + off.y, player.facing);
-  drawSprite(ctx, crouch ? ACCENTS[cls].crouch : ACCENTS[cls].stand, CLASS_PALETTES[cls], x + off.x, y + off.y, player.facing);
-  drawSprite(ctx, HEADS[cls], CLASS_PALETTES[cls], x + off.x, y + off.y, player.facing);
+  drawArt(ctx, art, frame, dx, dy, flip, sc);
   ctx.globalAlpha = 1;
-  if (player.animState === 'attack') {
-    const wp = WEAPONS[cls];
-    if (wp) drawWeapon(ctx, wp, CLASS_PALETTES[cls], x, y, player.facing, off);
-  }
   if (player.isStriking()) drawSlashArc(ctx, player, x, y);
-}
-
-function drawWeapon(ctx, wp, palette, x, y, facing, off) {
-  const grid = wp.grid;
-  const gx = grid[0].length;
-  const wpx = x + off.x + (facing > 0 ? wp.dx : SPRITE_W - wp.dx - gx);
-  drawSprite(ctx, grid, palette, wpx, y + off.y + wp.dy, facing);
 }
 
 function drawSlashArc(ctx, player, x, y) {
@@ -280,19 +204,30 @@ function drawSlashArc(ctx, player, x, y) {
 
 function drawEnemies(ctx, enemies, camera) {
   const e = CONFIG.ENEMY;
-  const eoff = spriteOffsets(ENEMY_SPRITES[0], e.W, e.H);
   for (const enemy of enemies) {
+    const art = ART.enemy[enemy.kind] || ART.enemy.slime;
+    if (!art || !art.img) continue;
     const x = Math.round(enemy.x - camera.x);
     const y = Math.round(enemy.y - camera.y);
+    const dx = x + Math.round((e.W - art.fw) / 2);
+    const dy = y + Math.round(e.H - art.foot);
+    const flip = art.facesLeft ? enemy.dir > 0 : enemy.dir < 0;
     if (enemy.dead) {
-      const a = clamp(enemy.deathTimer / 0.6, 0, 1);
-      ctx.globalAlpha = a;
-      drawSprite(ctx, ENEMY_SPRITES[1], ENEMY_PALETTE, x + eoff.x, y + eoff.y, enemy.dir);
+      const prog = clamp(1 - enemy.deathTimer / 0.6, 0, 1);
+      const dframes = art.anims.death;
+      const df = dframes[Math.min(Math.floor(prog * dframes.length), dframes.length - 1)];
+      ctx.globalAlpha = clamp(enemy.deathTimer / 0.6, 0, 1);
+      drawArt(ctx, art, df, dx, dy, flip);
       ctx.globalAlpha = 1;
       continue;
     }
-    const frame = Math.floor(enemy.animTime * 8) % ENEMY_SPRITES.length;
-    drawSprite(ctx, ENEMY_SPRITES[frame], ENEMY_PALETTE, x + eoff.x, y + eoff.y, enemy.dir, enemy.hitTimer > 0);
+    const frames = art.anims.walk;
+    const frame = frames[Math.floor(enemy.animTime * 8) % frames.length];
+    drawArt(ctx, art, frame, dx, dy, flip);
+    if (enemy.hitTimer > 0) {
+      ctx.fillStyle = 'rgba(255,255,255,0.5)';
+      ctx.fillRect(x, y, e.W, e.H);
+    }
     drawBar(ctx, x, y - 4, e.W, 3, enemy.hp / enemy.maxHp, '#40d040', '#2a5a2a');
   }
 }
@@ -353,13 +288,13 @@ function drawMenu(ctx, game) {
     ctx.fillRect(x - 1, cardY - 1, cardW + 2, cardH + 2);
     ctx.fillStyle = selected ? '#1a1a2a' : '#11151f';
     ctx.fillRect(x, cardY, cardW, cardH);
-    const sp = CLASS_PALETTES[ch.id];
-    const grid = SPRITES[ch.id].idle[0];
-    const sx = x + Math.round((cardW - grid[0].length * 2) / 2);
-    drawSpriteScaled(ctx, BACK_LAYERS[ch.id].stand, sp, sx, cardY + 6, 1, 2);
-    drawSpriteScaled(ctx, grid, sp, sx, cardY + 6, 1, 2);
-    drawSpriteScaled(ctx, ACCENTS[ch.id].stand, sp, sx, cardY + 6, 1, 2);
-    drawSpriteScaled(ctx, HEADS[ch.id], sp, sx, cardY + 6, 1, 2);
+    const art = ART.hero[ch.id];
+    if (art && art.img) {
+      const sc = 1.25;
+      const sx = x + Math.round((cardW - art.fw * sc) / 2);
+      const sy = cardY + 76 - Math.round(art.foot * sc);
+      drawArt(ctx, art, art.anims.idle[0], sx, sy, art.facesLeft, sc);
+    }
     ctx.fillStyle = '#fff';
     ctx.fillText(ch.name, x + cardW / 2, cardY + 88);
     ctx.fillText('HP ' + ch.hp, x + cardW / 2, cardY + 100);
@@ -384,4 +319,59 @@ function drawComplete(ctx) {
   ctx.fillStyle = '#fff';
   ctx.fillText('Pulsa Saltar o Golpear para volver al menú', CONFIG.VIEW_W / 2, CONFIG.VIEW_H / 2 + 8);
   ctx.textAlign = 'left';
+}
+
+function drawDebug(ctx, game) {
+  const W2 = CONFIG.VIEW_W * 2;
+  ctx.fillStyle = '#0a0e18';
+  ctx.fillRect(0, 0, W2, CONFIG.VIEW_H * 2);
+  ctx.textAlign = 'left';
+  ctx.font = '8px monospace';
+  const poses = ['idle', 'run', 'jump', 'attack', 'land'];
+  const pose = poses[Math.floor(game.time / 1.6) % poses.length];
+  const facing = Math.floor(game.time / 1.6) % 2 === 0 ? 1 : -1;
+  const cellW = W2 / 4;
+  const cellH = 128;
+  for (let i = 0; i < CHARACTERS.length; i++) {
+    const ch = CHARACTERS[i];
+    const art = ART.hero[ch.id];
+    const cx = i * cellW;
+    ctx.fillStyle = 'rgba(255,255,255,0.08)';
+    ctx.fillRect(cx, 0, cellW - 2, cellH);
+    ctx.fillStyle = '#fff';
+    ctx.fillText(ch.name + ' - ' + pose, cx + 4, 10);
+    if (!art || !art.img) {
+      ctx.fillStyle = '#f66';
+      ctx.fillText('sin arte', cx + 4, 22);
+      continue;
+    }
+    const frames = art.anims[pose];
+    const rate = pose === 'run' ? 8 : 4;
+    const frame = frames[Math.floor(game.time * rate) % frames.length];
+    const sc = 2;
+    const dx = cx + Math.round((cellW - art.fw * sc) / 2);
+    const dy = cellH - art.foot * sc;
+    drawArt(ctx, art, frame, dx, dy, art.facesLeft ? facing > 0 : facing < 0, sc);
+  }
+  const ey = cellH + 8;
+  ctx.fillStyle = '#fff';
+  ctx.fillText('Enemigos', 4, ey);
+  let ex = 8;
+  for (const id in ART.enemy) {
+    const art = ART.enemy[id];
+    if (!art || !art.img) continue;
+    const frames = art.anims.walk;
+    const frame = frames[Math.floor(game.time * 8) % frames.length];
+    drawArt(ctx, art, frame, ex, ey + 42 - art.foot * 2, false, 2);
+    ctx.fillText(id, ex, ey + 14);
+    ex += art.fw * 2 + 28;
+  }
+  const ty2 = ey + 50;
+  ctx.fillStyle = '#fff';
+  ctx.fillText('Tiles (grass: verde arriba, dirt: marrón)', 4, ty2);
+  for (let i = 0; i < ART.tile.grass.length; i++) drawTile(ctx, ART.tile.grass, i, 8 + i * 20, ty2 + 4);
+  let tx2 = 8 + ART.tile.grass.length * 20;
+  for (let i = 0; i < ART.tile.dirt.length; i++) drawTile(ctx, ART.tile.dirt, i, tx2 + i * 20, ty2 + 4);
+  ctx.fillStyle = '#777';
+  ctx.fillText('Abrir ' + (DEBUG_MODE ? 'sin ?debug' : 'con ?debug') + ' para el juego normal', 4, CONFIG.VIEW_H * 2 - 8);
 }

@@ -26,7 +26,7 @@ Reglas permanentes para asistentes de IA que trabajen en este proyecto.
 | `js/config.js` | Constantes de juego (tamaño, física) y helper `clamp`. |
 | `js/input.js` | Mapa de acciones a teclas (`left`, `right`, `down`, `jump`, `attack`). |
 | `js/entities/classes.js` | Datos de los 4 personajes. |
-| `js/entities/sprites.js` | Sprites pixel-art (poses, paletas, acentos de clase, enemigo). |
+| `js/entities/art.js` | Atlases generados (heroes, enemigos, tiles) en base64 + `ART.ready`. |
 | `js/entities/player.js` | Física, colisiones y ataque del jugador. |
 | `js/entities/enemy.js` | Enemigos: vida, patrulla y colisiones. |
 | `js/levels/level1.js` | Tilemap del nivel 1 y posiciones de enemigos. |

@@ -1,7 +1,8 @@
+const DEBUG_MODE = typeof location !== 'undefined' && location.search.indexOf('debug') >= 0;
 const canvas = document.getElementById('game');
 const ctx = canvas.getContext('2d');
-canvas.width = CONFIG.VIEW_W;
-canvas.height = CONFIG.VIEW_H;
+canvas.width = DEBUG_MODE ? CONFIG.VIEW_W * 2 : CONFIG.VIEW_W;
+canvas.height = DEBUG_MODE ? CONFIG.VIEW_H * 2 : CONFIG.VIEW_H;
 
 const input = new Input();
 bindTouchControls(input);
@@ -27,9 +28,11 @@ function startLevel() {
   game.level = new Level1();
   game.player = new Player(CHARACTERS[game.selected], game.level.spawnX, game.level.spawnY);
   game.camera = new Camera();
-  game.enemies = game.level.enemyDefs.map(
-    (d) => new Enemy(d, d.x * CONFIG.TILE, 11 * CONFIG.TILE - CONFIG.ENEMY.H)
-  );
+  game.enemies = game.level.enemyDefs.map((d, i) => {
+    const e = new Enemy(d, d.x * CONFIG.TILE, 11 * CONFIG.TILE - CONFIG.ENEMY.H);
+    e.kind = i % 2 === 1 ? 'goblin' : 'slime';
+    return e;
+  });
   game.completeTime = 0;
   game.particles = [];
   game.hitStop = 0;
@@ -189,7 +192,9 @@ function frame(now) {
   }
   render(ctx, game);
   input.endFrame();
+ART.ready.then(function () {
   requestAnimationFrame(frame);
+});
 }
 
 requestAnimationFrame(frame);
