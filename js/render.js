@@ -6,8 +6,6 @@ const STARS = [
   [40, 40], [120, 42], [200, 44], [280, 42],
 ];
 
-const CROUCH_SCALE = 0.72;
-
 function hash2(a, b) {
   const n = a * 374761393 + b * 668265263;
   return (Math.abs(n) % 997) / 997;
@@ -165,8 +163,7 @@ function drawPlayer(ctx, player, camera) {
   const h = player.h();
   const x = Math.round(player.x - camera.x);
   const y = Math.round(player.y - camera.y);
-  const crouch = player.animState === 'crouch' || player.animState === 'crouchWalk';
-  const sc = crouch ? CROUCH_SCALE : 1;
+  const sc = 1;
   const frames = art.anims[player.animState];
   const frame = frames[Math.min(player.frameIndex, frames.length - 1)];
   const flip = art.facesLeft ? player.facing > 0 : player.facing < 0;
@@ -180,24 +177,27 @@ function drawPlayer(ctx, player, camera) {
 
 function drawSlashArc(ctx, player, x, y) {
   const p = CONFIG.PLAYER;
-  const cy = y + p.H * 0.45;
+  const hh = player.crouch ? p.CROUCH_H : p.H;
+  const cy = y + hh * 0.45;
   const cx = x + p.W / 2;
+  const R1 = player.crouch ? 18 : 16;
+  const R2 = player.crouch ? 15 : 13;
   ctx.strokeStyle = 'rgba(255,255,255,0.9)';
   ctx.lineWidth = 2;
   ctx.beginPath();
   if (player.facing > 0) {
-    ctx.arc(cx + 8, cy, 16, -Math.PI / 2, Math.PI / 2);
+    ctx.arc(cx + 8, cy, R1, -Math.PI / 2, Math.PI / 2);
   } else {
-    ctx.arc(cx - 8, cy, 16, Math.PI / 2, Math.PI * 1.5);
+    ctx.arc(cx - 8, cy, R1, Math.PI / 2, Math.PI * 1.5);
   }
   ctx.stroke();
   ctx.strokeStyle = 'rgba(120,220,255,0.8)';
   ctx.lineWidth = 3;
   ctx.beginPath();
   if (player.facing > 0) {
-    ctx.arc(cx + 8, cy, 13, -Math.PI / 2.6, Math.PI / 2.6);
+    ctx.arc(cx + 8, cy, R2, -Math.PI / 2.6, Math.PI / 2.6);
   } else {
-    ctx.arc(cx - 8, cy, 13, Math.PI - Math.PI / 2.6, Math.PI + Math.PI / 2.6);
+    ctx.arc(cx - 8, cy, R2, Math.PI - Math.PI / 2.6, Math.PI + Math.PI / 2.6);
   }
   ctx.stroke();
 }
@@ -327,7 +327,7 @@ function drawDebug(ctx, game) {
   ctx.fillRect(0, 0, W2, CONFIG.VIEW_H * 2);
   ctx.textAlign = 'left';
   ctx.font = '8px monospace';
-  const poses = ['idle', 'run', 'jump', 'attack', 'land'];
+  const poses = ['idle', 'run', 'jump', 'attack', 'crouchAttack', 'land'];
   const pose = poses[Math.floor(game.time / 1.6) % poses.length];
   const facing = Math.floor(game.time / 1.6) % 2 === 0 ? 1 : -1;
   const cellW = W2 / 4;
@@ -345,7 +345,7 @@ function drawDebug(ctx, game) {
       ctx.fillText('sin arte', cx + 4, 22);
       continue;
     }
-    const frames = art.anims[pose];
+    const frames = art.anims[pose] || art.anims.idle;
     const rate = pose === 'run' ? 8 : 4;
     const frame = frames[Math.floor(game.time * rate) % frames.length];
     const sc = 2;

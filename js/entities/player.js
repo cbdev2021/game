@@ -99,20 +99,20 @@ class Player {
     this.animState = this.getAnimState();
     if (this.animState !== this.prevAnim) this.animTime = 0;
     this.animTime += dt;
-    const counts = { idle: 2, run: 4, jump: 3, attack: 3, land: 1, crouch: 1, crouchWalk: 2 };
-    const rates = { idle: 6, run: 12, jump: 8, attack: 14, land: 10, crouch: 6, crouchWalk: 10 };
+    const counts = { idle: 2, run: 4, jump: 3, attack: 3, land: 1, crouch: 1, crouchWalk: 2, crouchAttack: 3 };
+    const rates = { idle: 6, run: 12, jump: 8, attack: 14, land: 10, crouch: 6, crouchWalk: 10, crouchAttack: 14 };
     this.frameIndex = Math.floor(this.animTime * rates[this.animState]) % counts[this.animState];
     if (this.animState === 'jump') {
       this.frameIndex = this.vy < -80 ? 0 : this.vy > 80 ? 2 : 1;
     }
-    if (this.animState === 'attack') {
+    if (this.animState === 'attack' || this.animState === 'crouchAttack') {
       const phase = this.getAttackPhase();
       this.frameIndex = phase === 'anticipation' ? 0 : phase === 'strike' ? 1 : 2;
     }
   }
 
   getAnimState() {
-    if (this.attackTimer > 0) return 'attack';
+    if (this.attackTimer > 0) return this.crouch ? 'crouchAttack' : 'attack';
     if (!this.onGround) return 'jump';
     if (this.landTimer > 0) return 'land';
     if (this.crouch) return Math.abs(this.vx) > 5 ? 'crouchWalk' : 'crouch';
